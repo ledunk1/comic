@@ -1,0 +1,7 @@
+Flask
+Werkzeug
+moviepy==1.0.3
+requests
+Pillow==9.5.0
+pyngrok
+python-dotenv

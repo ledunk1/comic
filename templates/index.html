@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Explainer Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/drag-drop.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/effects-slider.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/media-manager.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gpu-settings.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Comic Explainer Studio 🎬</h1>
+            <p>Automate comic video creation with AI. Upload images, generate narrations, and get your video in minutes.</p>
+        </header>
+
+        <main>
+            <!-- Area Hasil Video -->
+            {% if video_file %}
+            <section id="video-result-section" class="card">
+                <h2>Your Video is Ready!</h2>
+                <video controls width="100%" autoplay loop>
+                    <source src="{{ url_for('static', filename='generated/output.mp4') }}?t={{ range(1, 100000) | random }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <a href="{{ url_for('index') }}" class="button primary-button full-width">Create Another Video</a>
+            </section>
+            {% endif %}
+
+            <!-- Form Utama -->
+            <form id="creation-form" method="POST" enctype="multipart/form-data" style="{{ 'display: none;' if video_file else '' }}">
+                
+                <!-- Step 1: Mode Selection -->
+                <section class="card">
+                    <h2>Step 1: Choose Your Mode</h2>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="mode" value="full-ai" checked>
+                            🤖 <strong>Full AI Mode:</strong> Just upload images, AI handles the rest.
+                        </label>
+                        <label>
+                            <input type="radio" name="mode" value="semi-auto">
+                            🎯 <strong>Semi Auto Mode:</strong> Upload images and provide custom prompts for AI narration.
+                        </label>
+                        <label>
+                            <input type="radio" name="mode" value="semi-manual">
+                            ✍️ <strong>Semi-Manual Mode:</strong> Upload images and write your own narration for each.
+                        </label>
+                    </div>
+                </section>
+
+                <!-- Step 2: Upload & Narrate -->
+                <section class="card">
+                    <h2>Step 2: Upload Your Comic Panels</h2>
+                    <div class="form-group">
+                        <label for="images">Select one or more images (JPG, PNG)</label>
+                        <input type="file" id="images" name="images" multiple required accept="image/png, image/jpeg">
+                    </div>
+                    <div id="image-preview-area">
+                        <!-- Previews will be dynamically inserted here by JS -->
+                    </div>
+                </section>
+
+                <!-- Step 3: Video Settings -->
+                <section class="card">
+                    <h2>Step 3: Video Settings</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="resolution">Video Resolution (HD 720p)</label>
+                            <select id="resolution" name="resolution">
+                                <option value="9:16" selected>9:16 Portrait (720x1280) - Shorts/TikTok</option>
+                                <option value="16:9">16:9 Landscape (1280x720) - YouTube</option>
+                                <option value="1:1">1:1 Square (720x720) - Instagram</option>
+                            </select>
+                            <small class="positioning-hint">
+                                📺 All videos are created in HD 720p quality for optimal performance and file size
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="enable_movement" name="enable_movement">
+                                Enable Auto Movement (Pan & Zoom)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Positioning Options for 16:9 -->
+                    <div class="form-group" id="image-positioning-options" style="display: none;">
+                        <label>Image Positioning (16:9 only)</label>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="image_positioning" value="fit_screen" checked>
+                                📐 <strong>Fit to Screen:</strong> Scale image to fill entire screen (may crop)
+                            </label>
+                            <label>
+                                <input type="radio" name="image_positioning" value="center_blur">
+                                🎨 <strong>Center with Blur Background:</strong> Keep original aspect ratio with blurred background
+                            </label>
+                        </div>
+                        <small class="positioning-hint">
+                            💡 <strong>Fit to Screen:</strong> Best for images that match 16:9 ratio<br>
+                            💡 <strong>Center with Blur:</strong> Best for portrait or square images
+                        </small>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="pause_duration">Pause Duration Between Scenes (seconds)</label>
+                            <input type="number" id="pause_duration" name="pause_duration" value="0.5" min="0" max="5" step="0.1" class="pause-duration-input">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 3.5: GPU Acceleration Settings -->
+                <section class="card">
+                    <div class="gpu-settings-section">
+                        <h3><span class="gpu-icon">⚡</span>GPU Acceleration for Video Encoding</h3>
+                        <p class="text-muted">Choose your preferred video encoding method. Hardware acceleration provides faster encoding when available.</p>
+                        
+                        <div class="gpu-options-container">
+                            {% for option in gpu_options %}
+                            <div class="gpu-option" data-value="{{ option.value }}">
+                                <input type="radio" name="gpu_acceleration" value="{{ option.value }}" 
+                                       {% if option.value == 'auto' %}checked{% endif %}>
+                                <div class="gpu-option-header">
+                                    <span class="gpu-option-title">{{ option.label }}</span>
+                                    <span class="gpu-status auto">Detecting...</span>
+                                </div>
+                                <div class="gpu-option-description">{{ option.description }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="gpu-detection-info" id="gpu-detection-info">
+                            <div class="gpu-detection-header">
+                                <span>🔍</span>
+                                <span>Available Encoders</span>
+                            </div>
+                            <div class="gpu-detection-list">
+                                <!-- Encoder detection results will be loaded here -->
+                            </div>
+                            <button type="button" id="refresh-gpu-btn" class="button secondary-button gpu-refresh-btn">
+                                Refresh Detection
+                            </button>
+                        </div>
+                        
+                        <div class="gpu-performance-hint">
+                            <h4><span>💡</span>Performance Tips</h4>
+                            <ul>
+                                <li><strong>Auto:</strong> Automatically selects the best available encoder for optimal performance</li>
+                                <li><strong>Hardware Acceleration:</strong> 2-5x faster encoding, lower CPU usage</li>
+                                <li><strong>CPU Encoding:</strong> Most compatible, works on all systems but slower</li>
+                                <li><strong>HD 720p:</strong> Optimized resolution for faster encoding and smaller file sizes</li>
+                                <li><strong>Fallback:</strong> If hardware encoding fails, automatically falls back to CPU</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 4: Effect Distribution (Hidden by default) -->
+                <section class="card" id="effect-sliders-section" style="display: none;">
+                    <h2>Step 4: Customize Movement Effects</h2>
+                    <p class="text-muted">Adjust the probability of each movement effect and control movement speed. Total must equal 100% to generate video.</p>
+                    
+                    <!-- Movement Speed Control -->
+                    <div class="movement-speed-section">
+                        <h3>Movement Speed Control</h3>
+                        <div class="speed-control-container">
+                            <div class="speed-control-group">
+                                <div class="speed-control-header">
+                                    <label for="movement_speed_slider">Movement Speed</label>
+                                    <span class="speed-value" id="movement_speed_value">Normal (8%)</span>
+                                </div>
+                                <input type="range" 
+                                       id="movement_speed_slider" 
+                                       class="speed-slider" 
+                                       min="2" 
+                                       max="20" 
+                                       value="8" 
+                                       step="1">
+                                <input type="hidden" name="movement_speed" id="movement_speed_input" value="8">
+                                <div class="speed-labels">
+                                    <span class="speed-label-left">Very Slow (2%)</span>
+                                    <span class="speed-label-center">Normal (8%)</span>
+                                    <span class="speed-label-right">Very Fast (20%)</span>
+                                </div>
+                                <div class="speed-description">
+                                    <small class="speed-hint" id="speed_hint">Normal speed provides balanced, smooth movement effects</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Effect Distribution -->
+                    <div class="effect-distribution-section">
+                        <h3>Effect Distribution</h3>
+                        <div id="effect-sliders-container">
+                            <!-- Effect sliders will be dynamically inserted here -->
+                        </div>
+                        
+                        <div class="effect-controls">
+                            <button type="button" class="button secondary-button" onclick="resetEffectSliders()">
+                                Reset to Defaults
+                            </button>
+                            <button type="button" class="button secondary-button" onclick="randomizeEffects()">
+                                Randomize
+                            </button>
+                            <button type="button" class="button secondary-button" onclick="normalizeEffectSliders()">
+                                Auto Balance to 100%
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Step 5: AI Configuration -->
+                <section class="card">
+                    <h2>Step 5: Configure AI Settings</h2>
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label for="language">Output Language</label>
+                            <select id="language" name="language">
+                                {% for lang in languages %}
+                                <option value="{{ lang }}" {{ 'selected' if lang == 'Indonesian' }}>{{ lang }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vision_model">Vision Model</label>
+                            <select id="vision_model" name="vision_model">
+                                {% for model in vision_models %}
+                                <option value="{{ model }}" {{ 'selected' if model == 'openai-large' }}>{{ model|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="voice_model">Narration Voice</label>
+                            <select id="voice_model" name="voice_model">
+                                {% for voice in tts_voices %}
+                                <option value="{{ voice }}" {{ 'selected' if voice == 'nova' }}>{{ voice|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" id="expertise-group">
+                        <label for="expertise">Narration Style (Prompt)</label>
+                        <select id="expertise" name="expertise">
+                            {% for name, text in prompts.items() %}
+                            <option value="{{ name }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </section>
+
+                <!-- Tombol Submit -->
+                <button type="submit" class="button primary-button large-button">
+                    <span class="button-text">Generate HD 720p Video</span>
+                    <div class="loader" style="display: none;"></div>
+                </button>
+            </form>
+            
+            <!-- Media Manager -->
+            <section id="media-manager" class="card media-manager-section" style="{{ 'display: none;' if video_file else '' }}">
+                <h2>📁 Generated Videos Manager</h2>
+                
+                <!-- Media Statistics -->
+                <div id="media-stats">
+                    <!-- Stats will be loaded here -->
+                </div>
+                
+                <!-- Media Controls -->
+                <div class="media-controls">
+                    <button id="refresh-media-btn" class="button secondary-button">Refresh List</button>
+                    <button id="cleanup-media-btn" class="button danger-button">Cleanup Old Videos</button>
+                </div>
+                
+                <!-- Media List -->
+                <div id="media-list">
+                    <!-- Media items will be loaded here -->
+                </div>
+            </section>
+            
+            <!-- Prompt Manager -->
+            <section id="prompt-manager" class="card" style="{{ 'display: none;' if video_file else '' }}">
+                <h2>Manage Narration Prompts</h2>
+                <div id="prompt-list">
+                    <!-- Prompts will be dynamically loaded here -->
+                </div>
+                <div class="form-group">
+                    <label for="new-prompt-name">Add or Update Prompt</label>
+                    <input type="text" id="new-prompt-name" placeholder="Prompt Name (e.g., 'Friendly Teacher')">
+                </div>
+                <div class="form-group">
+                     <textarea id="new-prompt-text" placeholder="Enter the system prompt text here..."></textarea>
+                </div>
+                <button id="add-prompt-btn" class="button secondary-button">Save Prompt</button>
+            </section>
+
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/effects-slider.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/drag-drop.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/media-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/gpu-settings.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+/* Drag and Drop Styling */
+.drag-drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    background-color: var(--bg-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.drag-drop-zone:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(138, 43, 226, 0.05);
+}
+
+.drag-drop-zone.drag-over {
+    border-color: var(--primary-color);
+    background-color: rgba(138, 43, 226, 0.1);
+    border-style: solid;
+}
+
+.drag-drop-zone.has-files {
+    border-color: var(--success-color);
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.drag-drop-content {
+    pointer-events: none;
+}
+
+.drag-drop-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.drag-drop-text {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.drag-drop-hint {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.browse-link {
+    color: var(--primary-color);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+/* Upload Notifications */
+.upload-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.upload-notification.success {
+    background-color: var(--success-color);
+}
+
+.upload-notification.error {
+    background-color: var(--danger-color);
+}
+
+.upload-notification.info {
+    background-color: var(--primary-color);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .drag-drop-zone {
+        padding: 1.5rem 1rem;
+    }
+    
+    .drag-drop-icon {
+        font-size: 2.5rem;
+    }
+    
+    .upload-notification {
+        right: 10px;
+        left: 10px;
+        top: 10px;
+    }
+}
